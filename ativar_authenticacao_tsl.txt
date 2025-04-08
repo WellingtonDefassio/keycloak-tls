@@ -1,0 +1,22 @@
+openssl genrsa -out my-keycloak-ca.key 2048 | GERA UMA CHAVE PRIVADA
+
+openssl req -x509 -new -nodes -key ot-ca.key -sha256 -days 3650 -out my-keycloak-ca.crt -subj "/CN=My Local Dev CA/O=MyOrg/C=BR" | GERA UMA C.A
+
+keytool -importcert -file my-keycloak-ca.crt -keystore my-keycloak-ca-truststore.p12 -storetype PKCS12  -storepass 123456 -noprompt | GERA UM ARQUIVO PKCS12 PARA TRUSTSTORE DO KC
+
+BASH KEYCLOAK
+
+bin/kc.bat start-dev --https-key-store-file=certs/keycloak-keystore.p12 --https-key-store-password=123456 --https-client-auth=required --https-trust-store-file=certsk/my-keycloak-ca-truststore.p12 --https-trust-store-password=123456 --https-port=8443 --hostname=localhost --hostname-strict=false
+
+---
+
+client:
+openssl genrsa -out client.key 2048 | PRIVADA
+openssl req -new -key client.key -out client.csr -subj "/CN=alice/O=client/C=BR" | CSR
+openssl x509 -req -in client.csr -CA my-keycloak-ca.crt -CAkey my-keycloak-ca.key -CAcreateserial -out client.crt -days 365 -sha256  | C.A ASSINA CERTIFICADO
+
+optional criar um certificado para navegador:
+
+openssl pkcs12 -export -inkey client.key -in client.crt -certfile my-keycloak-ca.crt -out client.p12 -name "Client Cert" -passout pass:123456
+
+curl -v https://localhost:8443 --cert-type P12 --cert client.p12:123456 --cacert my-keycloak-ca.crt
