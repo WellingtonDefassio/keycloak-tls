@@ -1,0 +1,35 @@
+openssl genrsa -out my-root-ca.key 2048 | GERA UMA CHAVE PRIVADA
+
+openssl req -x509 -new -nodes -key my-root-ca.key -sha256 -days 3650 -out my-root-ca.crt -subj "/CN=My Local Dev CA/O=MyOrg/C=BR" | CRIA UMA CERTIFICADO C.A
+
+----
+
+openssl genrsa -out keycloak.key 2048 | GERA UMA NOVA CHAVE PRIVADA
+openssl req -new -key keycloak.key -out keycloak.csr -subj "/CN=localhost/O=Keycloak Dev/C=BR" | GERA UM SIGN REQUEST
+
+cria arquivo 'keycloak.ext'
+
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+
+openssl x509 -req -in keycloak.csr -CA my-root-ca.crt -CAkey my-root-ca.key -CAcreateserial -out keycloak.crt -days 825 -sha256 -extfile keycloak.ext | ASSINA O CERTIFICADO COM A C.A
+
+---
+
+openssl pkcs12 -export -in keycloak.crt -inkey keycloak.key -out keycloak-keystore.p12 -name keycloak -certfile my-root-ca.crt -passout pass:123456 | criar PKCS12 para keycloak
+
+
+bash para subir o keycloak:
+
+bin/kc.bat start-dev \                                                                                                  
+  --https-port=8443 \
+  --https-key-store-file=certs/keycloak-keystore.p12 \
+  --https-key-store-password=123456 \
+  --hostname=localhost \
+  --hostname-strict=false
